@@ -27,7 +27,7 @@ class SolveSalesman:
         self.lowest_cost = np.inf  # Current lowest cost at leaf-node.
         self.loop_flag = True  # Break loop operation.
         self.finish_count = route.shape[0] - 2  # Condition of finish searching.
-        self.total_path = None  # The answer path.
+        self.total_path = ""  # The answer path.
 
     # Init root node.
     def init_root(self):
@@ -104,7 +104,7 @@ class SolveSalesman:
                     min_cost = current_cost
                     min_index = index
                     min_column = column
-        return (min_index, min_column)
+        return [min_index, min_column]
 
     # Calculate lowest cost d in D.
     def calc_lowest_cost(self, table, d_index):
@@ -128,14 +128,34 @@ class SolveSalesman:
         approved_paths = []
         forbidden_paths = []
         for path in self.best_path:
-            node = getattr(node, path)
+            next_node = getattr(node, path)
             if path == "left":
-                approved_paths.append(np.asarray(node.data["d_index"]))
+                approved_paths.append(node.data["d_index"])
             else:
-                forbidden_paths.append(np.asarray(node.data["d_index"]))
+                forbidden_paths.append(node.data["d_index"])
+            node = next_node
 
-        print(approved_paths)
-        print(forbidden_paths)
+        print("# approved_path: {}".format(approved_paths))
+        print("# forbidden_path: {}".format(forbidden_paths))
+
+        ans_list = []
+        index_list = [0, 1, 2]
+        end_number = np.asarray(approved_paths)[:, 1]
+
+        len_ = len(end_number)
+        for i in range(len_):
+            for j in range(len_):
+                if approved_paths[j][0] == end_number[i]:
+                    ans_list = approved_paths[i]
+                    ans_list.extend([approved_paths[j][1]])
+                    index_list.remove(i)
+                    index_list.remove(j)
+
+        ans_list.extend(approved_paths[index_list[0]])
+
+        for ans in ans_list:
+            self.total_path += str(ans) + " -> "
+        self.total_path += str(ans_list[0])
 
     def __call__(self):
         while True:
@@ -144,8 +164,9 @@ class SolveSalesman:
                 break
             self.set_data(self.root)
 
-
-        print("Cost: {}".format(self.lowest_cost))
+        print("# Cost: {}".format(self.lowest_cost))
+        print("# Path: {}".format(self.total_path))
+        print("==========================================")
 
 
 def main():
