@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import numpy as np
+import pandas as pd
 
 class Node:
     def __init__(self, data):
@@ -80,28 +81,46 @@ class SolveSalesman:
 
     # Calculate the Sl, Sc, and d_index of current table.
     def calc_Sl_and_Sc(self, table):
-        min_in_row = np.amin(table, axis=1)  # List of minimum cost in each row.
+        min_in_row = np.asarray(table.min(axis=1))  # List of minimum cost in each row.
         s_row = np.sum(min_in_row)  # Correspond to Sl in text.
-        min_in_col = np.amin((table - min_in_row.reshape(min_in_row.shape[0], 1)),
-                             axis=0)  # List of minimum cost in each col.
-        s_col = np.sum(min_in_col)  # Correspond to Sc in text.
-        d_index = np.unravel_index(np.argmin(table), table.shape)  # Index of lower cost row/col in D.
+        new_table = table.copy()
+        new_table = new_table.sub(min_in_row, axis=0)
+        min_in_col = np.asarray(new_table.min(axis=0))  # List of minimum cost in each col.
+        s_col = np.sum(min_in_col)
+        d_index = self.search_d_index(table)  # Index of lower cost row/col in D.
         return s_row + s_col, d_index
+
+    def search_d_index(self, table):
+        index_list = list(table.index)
+        columns_list = list(table.columns)
+        min_cost = np.inf
+        min_index = None
+        min_column = None
+
+        for index in index_list:
+            for column in columns_list:
+                current_cost = table.loc[index, column]
+                if current_cost < min_cost:
+                    min_cost = current_cost
+                    min_index = index
+                    min_column = column
+        return (min_index, min_column)
 
     # Calculate lowest cost d in D.
     def calc_lowest_cost(self, table, d_index):
-        return table[d_index[0]][d_index[1]]
+        return table.loc[d_index[0], d_index[1]]
 
     # Scale down and create new table.
     def trim_and_create_table(self, table, d_index):
-        new_table = np.delete(table, d_index[0], axis=0)
-        new_table = np.delete(new_table, d_index[1], axis=1)
+        new_table = table.copy()
+        new_table = new_table.drop(d_index[0], axis=0)
+        new_table = new_table.drop(d_index[1], axis=1)
         return new_table
 
     # Set infinite in d_index and create new table.
     def set_inf_and_create_table(self, table, d_index):
-        new_table = np.copy(table)
-        new_table[d_index[0]][d_index[1]] = np.inf
+        new_table = table.copy()
+        new_table.loc[d_index[0], d_index[1]] = np.inf
         return new_table
 
     # Create the final output path.
@@ -111,9 +130,9 @@ class SolveSalesman:
         for path in self.best_path:
             node = getattr(node, path)
             if path == "left":
-                approved_paths.append(np.asarray(node.data["d_index"]) + 1)
+                approved_paths.append(np.asarray(node.data["d_index"]))
             else:
-                forbidden_paths.append(np.asarray(node.data["d_index"]) + 1)
+                forbidden_paths.append(np.asarray(node.data["d_index"]))
 
         print(approved_paths)
         print(forbidden_paths)
@@ -145,6 +164,9 @@ def main():
         [9, 12, 7, np.inf, 23],
         [26, 7, 13, 8, np.inf]
     ])
+
+    ROUTE1 = pd.DataFrame(ROUTE1, index=[1,2,3,4,5], columns=[1,2,3,4,5])
+    ROUTE2 = pd.DataFrame(ROUTE2, index=[1, 2, 3, 4, 5], columns=[1, 2, 3, 4, 5])
 
     # Answering the sample route.
     my_salesman = SolveSalesman(ROUTE1)
